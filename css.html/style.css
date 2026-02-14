@@ -8,7 +8,7 @@ html, body {
 
 canvas { display: block; }
 
-/* ===== HUD ===== */
+/* HUD */
 #ui {
   position: absolute;
   top: 20px;
@@ -22,35 +22,19 @@ canvas { display: block; }
 }
 
 #stats { font-size: 24px; font-weight: 900; margin-bottom: 6px; }
-
-#meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.pill {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.35);
-  border: 1px solid rgba(0,0,0,0.2);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-#cooldowns {
-  font-size: 14px;
-  font-weight: 900;
-  margin: 6px 0 6px;
-  color: #111;
-}
-
 #score { font-size: 26px; font-weight: 900; margin-top: 6px; color: #003366; }
 #awk-timer { color: #660066; font-size: 18px; font-weight: 900; }
+
+#meta { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+.pill{
+  display:inline-flex; gap:6px; align-items:center;
+  padding:3px 8px; border-radius:999px;
+  background: rgba(255,255,255,0.35);
+  border:1px solid rgba(0,0,0,0.2);
+  font-size: 14px; font-weight: 900;
+}
+
+#cooldowns { font-size: 14px; font-weight: 900; margin: 6px 0; color: #111; }
 
 .bar-container {
   width: 300px;
@@ -66,7 +50,7 @@ canvas { display: block; }
 #hp-fill { width: 100%; height: 100%; background: #cc0033; transition: 0.1s; }
 #exp-fill { width: 0%; height: 100%; background: #008822; transition: 0.15s; }
 
-/* ===== item msg ===== */
+/* item msg */
 #item-msg {
   position: absolute;
   top: 25%;
@@ -82,7 +66,7 @@ canvas { display: block; }
   text-shadow: 2px 2px 10px rgba(255,255,255,0.8);
 }
 
-/* ===== hit flash ===== */
+/* hit flash */
 #hit-flash {
   position: fixed;
   inset: 0;
@@ -93,21 +77,7 @@ canvas { display: block; }
   transition: opacity 0.08s linear;
 }
 
-/* ===== overlay menus ===== */
-.overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.86);
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  z-index: 100;
-  padding: 18px;
-  box-sizing: border-box;
-}
-
+/* Pause btn */
 #pause-btn {
   position: fixed;
   top: 12px;
@@ -124,7 +94,7 @@ canvas { display: block; }
   display: none;
 }
 
-/* touch controls */
+/* Touch controls */
 #touch {
   position: fixed;
   left: 12px;
@@ -136,24 +106,20 @@ canvas { display: block; }
   user-select: none;
 }
 .touch-col { display: flex; flex-direction: column; gap: 10px; }
-
 .tbtn {
-  width: 62px;
-  height: 62px;
+  width: 62px; height: 62px;
   border-radius: 16px;
   border: 2px solid rgba(255,255,255,0.6);
   background: rgba(0,0,0,0.35);
   color: #fff;
   font-weight: 900;
   font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display:flex;align-items:center;justify-content:center;
   touch-action: none;
 }
 .tbtn.big { width: 78px; height: 78px; border-radius: 18px; font-size: 26px; }
 
-/* ✅ 모바일 HUD 축소 (PC 유지) */
+/* Mobile HUD 축소 (PC 유지) */
 @media (max-width: 768px), (max-height: 520px) {
   #ui { top: 10px; left: 10px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.35); }
   #stats { font-size: 14px; margin-bottom: 4px; }
