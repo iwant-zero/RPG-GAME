@@ -225,7 +225,7 @@ window.__BLADE_BOOTED = true;
     grounded: true,
     dir: 1,
     hp: 100, maxHp: 100,
-    baseAtk: 42,
+    baseAtk: 60,
 
     moveSpeed: 360,
     dashCD: 0,
