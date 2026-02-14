@@ -191,13 +191,13 @@ canvas { display: block; }
 
 .slot-actions { display: flex; gap: 8px; justify-content: space-between; }
 
-.reward-grid {
+.reward-grid, .weapon-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(220px, 1fr));
   gap: 12px;
   margin-top: 10px;
 }
-.reward-card {
+.reward-card, .weapon-card {
   text-align: left;
   cursor: pointer;
   padding: 14px;
@@ -206,7 +206,7 @@ canvas { display: block; }
   background: rgba(255,255,255,0.06);
   color: #fff;
 }
-.reward-card:hover { border-color: rgba(255,255,255,0.5); }
+.reward-card:hover, .weapon-card:hover { border-color: rgba(255,255,255,0.5); }
 .r-name { font-weight: 900; font-size: 18px; margin-bottom: 8px; }
 .r-desc { opacity: 0.85; font-size: 14px; white-space: pre-line; }
 
@@ -283,5 +283,5 @@ canvas { display: block; }
   .bar-container { width: 180px; height: 12px; border-width: 1px; margin: 4px 0; }
   #item-msg { font-size: 30px; }
   .title { font-size: 34px; }
-  .slots, .reward-grid { grid-template-columns: 1fr; }
+  .slots, .reward-grid, .weapon-grid { grid-template-columns: 1fr; }
 }
