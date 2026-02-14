@@ -202,7 +202,7 @@ window.__BLADE_BOOTED = true;
   const WEAPONS = {
     blade: { name:"BLADE", auraRadius: 165, auraMul: 2.6, gun: false },
     spear: { name:"SPEAR", auraRadius: 210, auraMul: 2.1, gun: false },
-    gun:   { name:"GUN",   auraRadius: 110, auraMul: 1.4, gun: true  },
+    gun:   { name:"GUN",   auraRadius: 165, auraMul: 1.4, gun: true  },
   };
   let weaponId = "blade";
 
