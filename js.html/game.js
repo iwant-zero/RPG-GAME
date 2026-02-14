@@ -927,7 +927,7 @@ window.__BLADE_BOOTED = true;
   function rollRewards() {
     return [
       { name: "+MAX HP", desc: "최대 체력 +20\n즉시 체력 +20", apply: () => { player.maxHp += 20; player.hp = Math.min(player.maxHp, player.hp + 20); } },
-      { name: "+ATK", desc: "기본 공격력 +8\n(보스 체력도 잘 깎임)", apply: () => { player.baseAtk += 8; } },
+      { name: "+ATK", desc: "기본 공격력 +8\n(보스 체력도 잘 깎임)", apply: () => { player.baseAtk += 10; } },
       { name: "+GOLD / HEAL", desc: "골드 +120\n체력 +35", apply: () => { gold += 120; player.hp = Math.min(player.maxHp, player.hp + 35); } },
     ];
   }
@@ -965,7 +965,7 @@ window.__BLADE_BOOTED = true;
     while (exp >= 100) {
       exp -= 100;
       level += 1;
-      player.baseAtk += 6;
+      player.baseAtk += 10;
       player.maxHp += 4;
       player.hp = Math.min(player.maxHp, player.hp + 8);
       showToast(`LEVEL UP! → ${level}`);
