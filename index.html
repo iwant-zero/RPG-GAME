@@ -1,16 +1,318 @@
-Blade/
-  index.html
-  js.html/
-    game.js
-  css.html/
-    style.css
-  assets/
-    player.png
-    enemy.png
-    boss.png
-    background.png
-    lightning.png
-    item_core.png
-    item_thunder.png
-    item_heal.png
-    bgm.mp3
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>BLADE: HIGH-VISIBILITY</title>
+
+  <!-- ✅ 외부 CSS -->
+  <link id="blade-style" rel="stylesheet" href="./css.html/style.css" />
+
+  <!-- ✅ CSS가 안 먹어도 “오버레이 글자 도배” 방지 + 에러 표시용 최소 스타일 -->
+  <style>
+    html,body{height:100%;margin:0;background:#000;overflow:hidden;font-family:Arial, sans-serif;}
+    canvas{display:block;}
+    /* CSS 미로딩 시에도 오버레이 기본 숨김(JS가 켜줄 때만 보이게) */
+    .overlay{display:none;}
+    #boot{
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,.92);color:#fff;z-index:9998;text-align:center;padding:20px;
+      font:700 18px/1.5 Arial, sans-serif;
+    }
+    #debug{
+      position:fixed;left:10px;bottom:10px;z-index:9999;display:none;
+      max-width:min(92vw,860px);white-space:pre-wrap;font:12px/1.4 ui-monospace,Consolas,monospace;
+      background:rgba(0,0,0,.78);color:#fff;border:1px solid rgba(255,255,255,.28);
+      padding:10px;border-radius:12px
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ 부팅/에러 안내(정상 실행되면 game.js가 자동으로 숨김) -->
+  <div id="boot">
+    LOADING...<br/>
+    만약 이 화면이 계속 유지되면<br/>
+    <b>./js.html/game.js</b> 또는 <b>./css.html/style.css</b> 경로가 틀린 겁니다.
+  </div>
+
+  <!-- HUD -->
+  <div id="ui">
+    <div id="stats">LV.1 에테르 기사</div>
+    <div class="bar-container"><div id="hp-fill"></div></div>
+
+    <div id="meta">
+      <span class="pill">WAVE <b id="wave">1</b></span>
+      <span class="pill">GOLD <b id="gold">0</b></span>
+      <span class="pill" id="challenge-pill" style="display:none;">MODE <b id="challenge-label">NORMAL</b></span>
+      <span class="pill" id="nohit-pill" style="display:none;">NO-HIT <b id="nohit-label">OK</b></span>
+      <span class="pill" id="time-pill" style="display:none;">TIME <b id="time-label">0.0</b>s</span>
+    </div>
+
+    <div id="awk-timer" style="display:none;">OVERDRIVE: 10s</div>
+    <div id="cooldowns">
+      DASH <b id="cd-dash">0.0</b>s ·
+      Q <b id="cd-q">0.0</b>s ·
+      E <b id="cd-e">0.0</b>s ·
+      R <b id="cd-r">0.0</b>s
+    </div>
+
+    <div id="score">SCORE: 0</div>
+    <div class="bar-container exp" style="height:8px;"><div id="exp-fill"></div></div>
+  </div>
+
+  <div id="item-msg"></div>
+  <div id="hit-flash" aria-hidden="true"></div>
+
+  <button id="pause-btn" aria-label="pause">⏸</button>
+
+  <!-- Touch controls -->
+  <div id="touch" aria-hidden="true">
+    <div class="touch-col">
+      <div class="tbtn" id="t-left">◀</div>
+      <div class="tbtn" id="t-right">▶</div>
+    </div>
+    <div class="touch-col">
+      <div class="tbtn big" id="t-jump">⤒</div>
+      <div class="tbtn" id="t-dash">⇢</div>
+    </div>
+    <div class="touch-col">
+      <div class="tbtn" id="t-q">Q</div>
+      <div class="tbtn" id="t-e">E</div>
+      <div class="tbtn" id="t-r">R</div>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- TITLE -->
+  <div id="title-menu" class="overlay" style="display:none;">
+    <h1 class="title">BLADE: HIGH-VISIBILITY</h1>
+
+    <div class="panel wide">
+      <div class="row">
+        <div class="col">
+          <div class="label">CHALLENGE</div>
+          <select id="challenge-select" class="select">
+            <option value="normal">NORMAL</option>
+            <option value="hard">HARD</option>
+            <option value="nohit">NO-HIT</option>
+            <option value="time">TIME ATTACK</option>
+          </select>
+          <div class="hint">도전 모드는 새 게임/로드 모두 적용됩니다.</div>
+        </div>
+
+        <div class="col">
+          <div id="token-line-title" class="small-note">이어하기 토큰: 0/1</div>
+          <div class="btn-row">
+            <button class="menu-btn" id="btn-open-options-title">OPTIONS</button>
+            <button class="menu-btn ghost" id="btn-title-back" style="display:none;">BACK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel wide">
+      <div class="label">SAVE SLOTS (3)</div>
+
+      <div class="slots">
+        <div class="slot-card">
+          <div class="slot-head">
+            <div class="slot-title">SLOT 1 <span id="slot-active-1" class="badge active" style="display:none;">ACTIVE</span></div>
+            <span id="slot-badge-1" class="badge">EMPTY</span>
+          </div>
+          <pre id="slot-meta-1" class="meta">No save data.</pre>
+          <div class="slot-actions">
+            <button class="menu-btn mini" id="slot-load-1">LOAD</button>
+            <button class="menu-btn mini" id="slot-new-1">NEW</button>
+            <button class="menu-btn mini danger" id="slot-del-1">DELETE</button>
+          </div>
+        </div>
+
+        <div class="slot-card">
+          <div class="slot-head">
+            <div class="slot-title">SLOT 2 <span id="slot-active-2" class="badge active" style="display:none;">ACTIVE</span></div>
+            <span id="slot-badge-2" class="badge">EMPTY</span>
+          </div>
+          <pre id="slot-meta-2" class="meta">No save data.</pre>
+          <div class="slot-actions">
+            <button class="menu-btn mini" id="slot-load-2">LOAD</button>
+            <button class="menu-btn mini" id="slot-new-2">NEW</button>
+            <button class="menu-btn mini danger" id="slot-del-2">DELETE</button>
+          </div>
+        </div>
+
+        <div class="slot-card">
+          <div class="slot-head">
+            <div class="slot-title">SLOT 3 <span id="slot-active-3" class="badge active" style="display:none;">ACTIVE</span></div>
+            <span id="slot-badge-3" class="badge">EMPTY</span>
+          </div>
+          <pre id="slot-meta-3" class="meta">No save data.</pre>
+          <div class="slot-actions">
+            <button class="menu-btn mini" id="slot-load-3">LOAD</button>
+            <button class="menu-btn mini" id="slot-new-3">NEW</button>
+            <button class="menu-btn mini danger" id="slot-del-3">DELETE</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="small-note">※ GAME OVER에서 “LOAD SLOT”은 이어하기 토큰(1회) 있을 때만 가능</div>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div id="pause-menu" class="overlay" style="display:none;">
+    <h1 class="title">PAUSED</h1>
+
+    <div class="panel">
+      <div id="active-slot-note" class="small-note">ACTIVE: SLOT 1</div>
+      <div id="token-line-pause" class="small-note">이어하기 토큰: 0/1</div>
+      <div class="mini-slots">
+        <button class="menu-btn mini" id="mini-slot-1">SLOT 1</button>
+        <button class="menu-btn mini" id="mini-slot-2">SLOT 2</button>
+        <button class="menu-btn mini" id="mini-slot-3">SLOT 3</button>
+      </div>
+      <div class="btn-col">
+        <button class="menu-btn" id="btn-resume">RESUME</button>
+        <button class="menu-btn" id="btn-save">SAVE (ACTIVE SLOT)</button>
+        <button class="menu-btn" id="btn-open-shop">SHOP</button>
+        <button class="menu-btn" id="btn-open-options-pause">OPTIONS</button>
+        <button class="menu-btn ghost" id="btn-restart">RESTART (ACTIVE SLOT)</button>
+        <button class="menu-btn ghost" id="btn-to-title">TITLE MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REWARD -->
+  <div id="reward-menu" class="overlay" style="display:none;">
+    <h1 class="title">BOSS CLEARED</h1>
+    <div id="reward-sub" class="small-note">WAVE 1 → 2</div>
+
+    <div class="panel wide">
+      <div class="reward-grid">
+        <button class="reward-card" id="reward-0">
+          <div class="r-name" id="reward-name-0">Reward A</div>
+          <div class="r-desc" id="reward-desc-0">Desc</div>
+        </button>
+        <button class="reward-card" id="reward-1">
+          <div class="r-name" id="reward-name-1">Reward B</div>
+          <div class="r-desc" id="reward-desc-1">Desc</div>
+        </button>
+        <button class="reward-card" id="reward-2">
+          <div class="r-name" id="reward-name-2">Reward C</div>
+          <div class="r-desc" id="reward-desc-2">Desc</div>
+        </button>
+      </div>
+      <div class="small-note">선택 즉시 체크포인트 자동 저장 + 다음 웨이브 준비</div>
+    </div>
+  </div>
+
+  <!-- SHOP -->
+  <div id="shop-menu" class="overlay" style="display:none;">
+    <h1 class="title">SHOP</h1>
+    <div class="small-note">골드로 업그레이드 / 회복을 구매하세요.</div>
+
+    <div class="panel wide">
+      <div class="row spread">
+        <div class="small-note">GOLD: <b id="shop-gold">0</b></div>
+        <div class="small-note">WAVE: <b id="shop-wave">1</b></div>
+      </div>
+      <div id="shop-list" class="shop-list"></div>
+
+      <div class="btn-row center">
+        <button class="menu-btn ghost" id="btn-skip-shop">SKIP</button>
+        <button class="menu-btn" id="btn-start-wave">START WAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTIONS -->
+  <div id="options-menu" class="overlay" style="display:none;">
+    <h1 class="title">OPTIONS</h1>
+
+    <div class="panel">
+      <label class="opt">
+        <input type="checkbox" id="opt-shake" />
+        <span>SCREEN SHAKE</span>
+      </label>
+
+      <label class="opt">
+        <input type="checkbox" id="opt-flash" />
+        <span>HIT FLASH</span>
+      </label>
+
+      <label class="opt">
+        <input type="checkbox" id="opt-slowmo" />
+        <span>SLOW-MO (PERFECT DODGE)</span>
+      </label>
+
+      <div class="small-note">※ 옵션은 저장됩니다(로컬스토리지).</div>
+
+      <div class="btn-row center">
+        <button class="menu-btn" id="btn-options-back">BACK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="overlay" class="overlay" style="display:none;">
+    <h1 class="title">GAME OVER</h1>
+    <div id="final-result" class="small-note">SCORE: 0 | LEVEL: 1</div>
+    <div id="token-line-over" class="small-note">이어하기 토큰: 0/1</div>
+    <div id="over-note" class="small-note">불러올 슬롯을 선택하세요.</div>
+
+    <div class="panel">
+      <div class="btn-col">
+        <button class="menu-btn" id="go-load-1">LOAD SLOT 1</button>
+        <button class="menu-btn" id="go-load-2">LOAD SLOT 2</button>
+        <button class="menu-btn" id="go-load-3">LOAD SLOT 3</button>
+      </div>
+
+      <div class="btn-row center">
+        <button class="menu-btn ghost" id="btn-retry">RETRY (NEW)</button>
+        <button class="menu-btn ghost" id="btn-over-title">TITLE</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="debug"></div>
+
+  <script>
+    (function(){
+      const debug = (msg) => {
+        const el = document.getElementById("debug");
+        if(!el) return;
+        el.style.display = "block";
+        el.textContent = msg;
+      };
+
+      // ✅ CSS 로딩 체크(대부분의 “PAUSED 글자만 보임” 원인)
+      setTimeout(() => {
+        try{
+          const ok = Array.from(document.styleSheets).some(ss => (ss.href||"").includes("/css.html/style.css") || (ss.href||"").endsWith("css.html/style.css"));
+          if(!ok){
+            debug("style.css가 적용되지 않았습니다.\n경로: ./css.html/style.css\n※ css.html은 ‘폴더’여야 합니다(파일 아님).");
+          }
+        }catch(e){
+          // 일부 환경에서 접근 제한이 있을 수 있음
+        }
+      }, 700);
+
+      // ✅ game.js 로더
+      const s = document.createElement("script");
+      s.src = "./js.html/game.js?v=2";
+      s.onload = () => {
+        setTimeout(() => {
+          if(!window.__BLADE_BOOTED){
+            debug("game.js가 로드되었지만 초기화 신호가 없습니다.\n콘솔(F12) 에러를 확인하세요.");
+          }
+        }, 800);
+      };
+      s.onerror = () => {
+        debug("game.js 로드 실패!\n경로: ./js.html/game.js\n폴더/파일 이름을 확인하세요.\n※ js.html은 ‘폴더’여야 합니다(파일 아님).");
+      };
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>
