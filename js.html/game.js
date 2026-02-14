@@ -740,7 +740,7 @@ window.__BLADE_BOOTED = true;
   const LIGHTNING_WARN = 0.75;
   const LIGHTNING_STRIKE = 0.28;
   const LIGHTNING_W = 60;
-  const LIGHTNING_DPS = 160; // (이전의 2배 강하게)
+  const LIGHTNING_DPS = 100; // (이전의 2배 강하게)
 
   function spawnLightningPack() {
     const xs = [];
