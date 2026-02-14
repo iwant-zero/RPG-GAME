@@ -225,7 +225,7 @@ window.__BLADE_BOOTED = true;
     grounded: true,
     dir: 1,
     hp: 100, maxHp: 100,
-    baseAtk: 60,
+    baseAtk: 50,
 
     moveSpeed: 360,
     dashCD: 0,
@@ -714,7 +714,7 @@ window.__BLADE_BOOTED = true;
 
   function spawnBoss() {
     if (enemies.some(e => e.isBoss)) return;
-    const hp = Math.floor(2800 + (wave * 1300) + (level * 220));
+    const hp = Math.floor(2200 + (wave * 1300) + (level * 220));
     enemies.push({
       isBoss: true,
       x: WORLD.w + 140,
@@ -736,11 +736,11 @@ window.__BLADE_BOOTED = true;
   }
 
   /* ===== Lightning (요청 반영: 6개 + 데미지 2배) ===== */
-  const LIGHTNING_COUNT = 6;
+  const LIGHTNING_COUNT = 5;
   const LIGHTNING_WARN = 0.75;
   const LIGHTNING_STRIKE = 0.28;
   const LIGHTNING_W = 60;
-  const LIGHTNING_DPS = 100; // (이전의 2배 강하게)
+  const LIGHTNING_DPS = 120; // (이전의 2배 강하게)
 
   function spawnLightningPack() {
     const xs = [];
@@ -927,7 +927,7 @@ window.__BLADE_BOOTED = true;
   function rollRewards() {
     return [
       { name: "+MAX HP", desc: "최대 체력 +20\n즉시 체력 +20", apply: () => { player.maxHp += 20; player.hp = Math.min(player.maxHp, player.hp + 20); } },
-      { name: "+ATK", desc: "기본 공격력 +8\n(보스 체력도 잘 깎임)", apply: () => { player.baseAtk += 10; } },
+      { name: "+ATK", desc: "기본 공격력 +10\n(보스 체력도 잘 깎임)", apply: () => { player.baseAtk += 8; } },
       { name: "+GOLD / HEAL", desc: "골드 +120\n체력 +35", apply: () => { gold += 120; player.hp = Math.min(player.maxHp, player.hp + 35); } },
     ];
   }
@@ -965,7 +965,7 @@ window.__BLADE_BOOTED = true;
     while (exp >= 100) {
       exp -= 100;
       level += 1;
-      player.baseAtk += 10;
+      player.baseAtk += 8;
       player.maxHp += 4;
       player.hp = Math.min(player.maxHp, player.hp + 8);
       showToast(`LEVEL UP! → ${level}`);
