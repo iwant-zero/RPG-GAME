@@ -8,6 +8,43 @@ window.__BLADE_BOOTED = true;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const rand = (a, b) => a + Math.random() * (b - a);
 
+  /* =========================================================
+     ✅ GUN TUNING (여기만 숫자 바꾸면 총 사거리 조절됨)
+     - gunRange:  총이 '타겟을 잡는 거리'(가장 중요)
+     - bulletLife: 총알이 유지되는 시간(길수록 더 멀리 감)
+     - bulletSpeed: 총알 속도(빠를수록 멀리/명중감 증가)
+     ========================================================= */
+  const TUNE_DEFAULT = {
+    gunRange: 800,      // ✅ 총 락온 사거리 (기본 800)
+    gunBulletLife: 1.6, // ✅ 총알 수명(초) (기본 1.6)
+    gunBulletSpeed: 1300// ✅ 총알 속도 (기본 1300)
+  };
+  const TUNE_KEY = "blade_tune_v1";
+
+  function loadTune() {
+    try {
+      const raw = localStorage.getItem(TUNE_KEY);
+      if (!raw) return { ...TUNE_DEFAULT };
+      const t = JSON.parse(raw);
+      return {
+        gunRange: Number.isFinite(+t.gunRange) ? +t.gunRange : TUNE_DEFAULT.gunRange,
+        gunBulletLife: Number.isFinite(+t.gunBulletLife) ? +t.gunBulletLife : TUNE_DEFAULT.gunBulletLife,
+        gunBulletSpeed: Number.isFinite(+t.gunBulletSpeed) ? +t.gunBulletSpeed : TUNE_DEFAULT.gunBulletSpeed,
+      };
+    } catch {
+      return { ...TUNE_DEFAULT };
+    }
+  }
+  function saveTune() {
+    localStorage.setItem(TUNE_KEY, JSON.stringify(tune));
+  }
+
+  // ✅ 런타임에서도 콘솔로 조정 가능:
+  // 예) window.BLADE_TUNE.gunRange = 1200; window.BLADE_SAVE_TUNE();
+  let tune = loadTune();
+  window.BLADE_TUNE = tune;
+  window.BLADE_SAVE_TUNE = () => { saveTune(); };
+
   /* ===== DOM ===== */
   const el = {
     boot: $("boot"),
@@ -202,7 +239,7 @@ window.__BLADE_BOOTED = true;
   const WEAPONS = {
     blade: { name:"BLADE", auraRadius: 165, auraMul: 2.6, gun: false },
     spear: { name:"SPEAR", auraRadius: 210, auraMul: 2.1, gun: false },
-    gun:   { name:"GUN",   auraRadius: 60, auraMul: 1.4, gun: true  },
+    gun:   { name:"GUN",   auraRadius: 60,  auraMul: 1.4, gun: true  },
   };
   let weaponId = "blade";
 
@@ -225,7 +262,7 @@ window.__BLADE_BOOTED = true;
     grounded: true,
     dir: 1,
     hp: 100, maxHp: 100,
-    baseAtk: 50,
+    baseAtk: 42,
 
     moveSpeed: 360,
     dashCD: 0,
@@ -241,13 +278,12 @@ window.__BLADE_BOOTED = true;
   const items = [];
   const lightnings = [];
   const bullets = [];
-  const after = [];
   const hazards = [];
 
   /* ===== Input ===== */
   const keys = Object.create(null);
   const TAP_MS = 130;
-  const TAP_NUDGE = 16; // “톡” 이동: 지금의 절반 느낌(더 미세 이동)
+  const TAP_NUDGE = 16;
 
   const tap = { leftAt: 0, rightAt: 0 };
   const nowMs = () => performance.now();
@@ -260,6 +296,24 @@ window.__BLADE_BOOTED = true;
       else if (state === STATE.PAUSE) closePause();
       return;
     }
+
+    // ✅ 간단 조정: 콘솔 없이도 키로 사거리 조절(PC)
+    // [  : 사거리 -50
+    // ]  : 사거리 +50
+    // (조정값은 저장됨)
+    if (e.code === "BracketLeft") {
+      tune.gunRange = clamp(tune.gunRange - 50, 200, 2000);
+      saveTune();
+      showToast(`GUN RANGE: ${tune.gunRange}`);
+      return;
+    }
+    if (e.code === "BracketRight") {
+      tune.gunRange = clamp(tune.gunRange + 50, 200, 2000);
+      saveTune();
+      showToast(`GUN RANGE: ${tune.gunRange}`);
+      return;
+    }
+
     if (!keys[e.code]) {
       if (e.code === "KeyA" || e.code === "ArrowLeft") tap.leftAt = nowMs();
       if (e.code === "KeyD" || e.code === "ArrowRight") tap.rightAt = nowMs();
@@ -382,6 +436,7 @@ window.__BLADE_BOOTED = true;
       `TOKEN: ${s.continueToken ?? 1}/1`,
       `WEAPON: ${(WEAPONS[s.weaponId]?.name) || "BLADE"}`,
       `CHECKPOINT: ${s.checkpointTag || "none"}`,
+      `GUN RANGE: ${(s.tune?.gunRange ?? tune.gunRange)}`,
     ];
     return { badge: "SAVED", meta: lines.join("\n") };
   }
@@ -420,6 +475,7 @@ window.__BLADE_BOOTED = true;
       weaponId,
       player: { x: player.x, y: player.y, hp: player.hp, maxHp: player.maxHp, baseAtk: player.baseAtk },
       core: { coreStack, overdrive },
+      tune: { ...tune }, // ✅ 사거리 튜닝값도 저장
     };
   }
 
@@ -443,6 +499,14 @@ window.__BLADE_BOOTED = true;
     coreStack = s.core?.coreStack ?? 0;
     overdrive = s.core?.overdrive ?? 0;
 
+    // ✅ 세이브에 튜닝값이 있으면 복원
+    if (s.tune) {
+      tune.gunRange = Number.isFinite(+s.tune.gunRange) ? +s.tune.gunRange : tune.gunRange;
+      tune.gunBulletLife = Number.isFinite(+s.tune.gunBulletLife) ? +s.tune.gunBulletLife : tune.gunBulletLife;
+      tune.gunBulletSpeed = Number.isFinite(+s.tune.gunBulletSpeed) ? +s.tune.gunBulletSpeed : tune.gunBulletSpeed;
+      saveTune();
+    }
+
     player.vx = 0; player.vy = 0; player.grounded = true;
     player.dashCD = 0; player.invuln = 0;
     player.qCD = 0; player.eCD = 0; player.rCD = 0;
@@ -453,7 +517,6 @@ window.__BLADE_BOOTED = true;
     items.length = 0;
     lightnings.length = 0;
     bullets.length = 0;
-    after.length = 0;
     hazards.length = 0;
 
     refreshHUD();
@@ -483,7 +546,6 @@ window.__BLADE_BOOTED = true;
     if (consumeToken) {
       if (continueToken <= 0) { showToast("NO TOKEN"); return; }
       continueToken = 0;
-      // 토큰 소모 상태도 저장에 반영
       writeSlot(n, { ...snap, continueToken: 0, time: Date.now() });
     }
 
@@ -507,6 +569,7 @@ window.__BLADE_BOOTED = true;
     refreshHUD();
     refreshTokenLines();
     requestAudio();
+    if (weaponId === "gun") showToast(`GUN RANGE: ${tune.gunRange}`);
   }
 
   function openPause() {
@@ -589,7 +652,6 @@ window.__BLADE_BOOTED = true;
     items.length = 0;
     lightnings.length = 0;
     bullets.length = 0;
-    after.length = 0;
     hazards.length = 0;
 
     refreshHUD();
@@ -598,7 +660,6 @@ window.__BLADE_BOOTED = true;
   }
 
   /* ===== Bind UI Buttons ===== */
-  // title slot buttons
   for (let i=1; i<=3; i++) {
     el.slotLoad[i]?.addEventListener("click", () => loadSlotToPlay(i, false));
     el.slotNew[i]?.addEventListener("click", () => {
@@ -615,7 +676,6 @@ window.__BLADE_BOOTED = true;
 
   el.btnOpenOptionsTitle?.addEventListener("click", () => openOptions(STATE.TITLE));
 
-  // pause menu
   el.btnResume?.addEventListener("click", closePause);
   el.btnSave?.addEventListener("click", manualSave);
   el.btnOpenOptionsPause?.addEventListener("click", () => openOptions(STATE.PAUSE));
@@ -626,19 +686,16 @@ window.__BLADE_BOOTED = true;
 
   for (let i=1; i<=3; i++) el.miniSlot[i]?.addEventListener("click", () => setActiveSlot(i));
 
-  // options
   el.btnOptionsBack?.addEventListener("click", closeOptions);
   el.optShake?.addEventListener("change", () => { options.shake = el.optShake.checked; saveOptions(); });
   el.optFlash?.addEventListener("change", () => { options.flash = el.optFlash.checked; saveOptions(); });
   el.optSlowmo?.addEventListener("change", () => { options.slowmo = el.optSlowmo.checked; saveOptions(); });
 
-  // weapon select
   el.wBlade?.addEventListener("click", () => startNewGameWithWeapon(pendingNewSlot, "blade"));
   el.wSpear?.addEventListener("click", () => startNewGameWithWeapon(pendingNewSlot, "spear"));
   el.wGun?.addEventListener("click", () => startNewGameWithWeapon(pendingNewSlot, "gun"));
   el.btnWeaponCancel?.addEventListener("click", openTitle);
 
-  // game over load buttons (token 필요)
   for (let i=1; i<=3; i++) {
     el.goLoad[i]?.addEventListener("click", () => {
       if (continueToken <= 0) return;
@@ -677,7 +734,7 @@ window.__BLADE_BOOTED = true;
 
   /* ===== Items ===== */
   function tryDropItem(x) {
-    if (Math.random() > 0.3) return;
+    if (Math.random() > 0.2) return;
     const r = Math.random();
     const type = (r < 0.25) ? "CORE" : (r < 0.55) ? "THUNDER" : "HEAL";
     items.push({ x: clamp(x, 20, WORLD.w - 60), y: FLOOR_Y - 60, w: 50, h: 50, type });
@@ -714,7 +771,7 @@ window.__BLADE_BOOTED = true;
 
   function spawnBoss() {
     if (enemies.some(e => e.isBoss)) return;
-    const hp = Math.floor(2200 + (wave * 1300) + (level * 220));
+    const hp = Math.floor(2800 + (wave * 1300) + (level * 220));
     enemies.push({
       isBoss: true,
       x: WORLD.w + 140,
@@ -735,12 +792,12 @@ window.__BLADE_BOOTED = true;
     showToast(`BOSS ALERT: LV.${level}`);
   }
 
-  /* ===== Lightning (요청 반영: 6개 + 데미지 2배) ===== */
-  const LIGHTNING_COUNT = 5;
+  /* ===== Lightning ===== */
+  const LIGHTNING_COUNT = 6;
   const LIGHTNING_WARN = 0.75;
   const LIGHTNING_STRIKE = 0.28;
   const LIGHTNING_W = 60;
-  const LIGHTNING_DPS = 120; // (이전의 2배 강하게)
+  const LIGHTNING_DPS = 480;
 
   function spawnLightningPack() {
     const xs = [];
@@ -863,7 +920,7 @@ window.__BLADE_BOOTED = true;
     }
   }
 
-  /* ===== GUN bullets ===== */
+  /* ===== GUN bullets (✅ 사거리/수명/속도 모두 tune로 조정) ===== */
   let shootTimer = 0;
   function gunAutoShoot(dt) {
     shootTimer += dt;
@@ -875,11 +932,12 @@ window.__BLADE_BOOTED = true;
     const px = player.x + player.w/2;
     const py = player.y + player.h*0.45;
 
+    const maxRange = clamp(tune.gunRange, 200, 2000); // ✅ 락온 사거리
     for (const e of enemies) {
       const ex = e.x + e.w/2;
       const ey = e.y + e.h*0.45;
       const d = Math.hypot(ex - px, ey - py);
-      if (d < 520 && d < best) { best = d; target = e; }
+      if (d < maxRange && d < best) { best = d; target = e; }
     }
     if (!target) return;
 
@@ -889,12 +947,12 @@ window.__BLADE_BOOTED = true;
     const dy = ey - py;
     const len = Math.max(1, Math.hypot(dx, dy));
 
-    const speed = 980;
+    const speed = clamp(tune.gunBulletSpeed, 400, 2500); // ✅ 총알 속도
     bullets.push({
       x: px, y: py,
       vx: (dx / len) * speed,
       vy: (dy / len) * speed,
-      life: 1.0,
+      life: clamp(tune.gunBulletLife, 0.4, 3.0),          // ✅ 총알 수명(초)
       dmg: Math.floor(player.baseAtk * 0.55 + wave * 4 + coreStack * 6),
     });
   }
@@ -921,13 +979,13 @@ window.__BLADE_BOOTED = true;
     }
   }
 
-  /* ===== Rewards (보스 클리어 UI + 자동 저장) ===== */
+  /* ===== Rewards ===== */
   let pendingReward = null;
 
   function rollRewards() {
     return [
       { name: "+MAX HP", desc: "최대 체력 +20\n즉시 체력 +20", apply: () => { player.maxHp += 20; player.hp = Math.min(player.maxHp, player.hp + 20); } },
-      { name: "+ATK", desc: "기본 공격력 +10\n(보스 체력도 잘 깎임)", apply: () => { player.baseAtk += 8; } },
+      { name: "+ATK", desc: "기본 공격력 +8\n(보스 체력도 잘 깎임)", apply: () => { player.baseAtk += 8; } },
       { name: "+GOLD / HEAL", desc: "골드 +120\n체력 +35", apply: () => { gold += 120; player.hp = Math.min(player.maxHp, player.hp + 35); } },
     ];
   }
@@ -951,7 +1009,6 @@ window.__BLADE_BOOTED = true;
       pendingReward[i].apply();
       wave += 1;
 
-      // ✅ 보스 클리어 직후(보상 선택)만 자동 저장 + 토큰 충전
       checkpointSave(`boss_clear_wave_${wave-1}`);
 
       setMenu(null);
@@ -965,7 +1022,7 @@ window.__BLADE_BOOTED = true;
     while (exp >= 100) {
       exp -= 100;
       level += 1;
-      player.baseAtk += 8;
+      player.baseAtk += 6;
       player.maxHp += 4;
       player.hp = Math.min(player.maxHp, player.hp + 8);
       showToast(`LEVEL UP! → ${level}`);
@@ -983,10 +1040,8 @@ window.__BLADE_BOOTED = true;
 
   /* ===== Update ===== */
   function update(dtReal) {
-    // slowmo hold (실시간)
     if (slowmoHold > 0) slowmoHold = Math.max(0, slowmoHold - dtReal);
 
-    // slowmo 적용
     let timeScale = 1;
     if (options.slowmo && slowmo > 0) {
       slowmo = Math.max(0, slowmo - dtReal);
@@ -994,20 +1049,17 @@ window.__BLADE_BOOTED = true;
     }
     const dt = dtReal * timeScale;
 
-    // cooldowns (실시간)
     player.dashCD = Math.max(0, player.dashCD - dtReal);
     player.qCD = Math.max(0, player.qCD - dtReal);
     player.eCD = Math.max(0, player.eCD - dtReal);
     player.rCD = Math.max(0, player.rCD - dtReal);
     player.invuln = Math.max(0, player.invuln - dtReal);
 
-    // overdrive
     if (overdrive > 0) {
       overdrive -= dtReal;
       if (overdrive <= 0) { overdrive = 0; coreStack = 0; }
     }
 
-    // spawn timers
     enemySpawnTimer += dt;
     lightningTimer += dt;
 
@@ -1020,7 +1072,6 @@ window.__BLADE_BOOTED = true;
       spawnLightningPack();
     }
 
-    // input
     const left = keys["KeyA"] || keys["ArrowLeft"];
     const right = keys["KeyD"] || keys["ArrowRight"];
     const jump = keys["Space"];
@@ -1029,7 +1080,6 @@ window.__BLADE_BOOTED = true;
     if (left && !right) player.dir = -1;
     if (right && !left) player.dir = 1;
 
-    // dash
     if (dash && player.dashCD <= 0) {
       player.dashCD = 1.15;
       player.invuln = Math.max(player.invuln, 0.18);
@@ -1037,23 +1087,19 @@ window.__BLADE_BOOTED = true;
       showToast("DASH!");
     }
 
-    // move (hold speed 유지)
     if (!dash) {
       const target = (right ? 1 : 0) - (left ? 1 : 0);
       const tv = target * player.moveSpeed;
       player.vx += (tv - player.vx) * Math.min(1, 14 * dt);
     }
 
-    // jump
     if (jump && player.grounded) {
       player.vy = -540;
       player.grounded = false;
     }
 
-    // gravity
     player.vy += 1600 * dt;
 
-    // integrate
     player.x += player.vx * dt;
     player.y += player.vy * dt;
 
@@ -1064,7 +1110,6 @@ window.__BLADE_BOOTED = true;
       player.grounded = true;
     }
 
-    // skills
     if (keys["KeyQ"] && player.qCD <= 0) {
       player.qCD = 4.0;
       for (const e of enemies) {
@@ -1086,15 +1131,12 @@ window.__BLADE_BOOTED = true;
       showToast("R: RECOVER");
     }
 
-    // aura stats
     const a = auraStats();
     if (a.gun) gunAutoShoot(dt);
 
-    // enemies update
     for (const e of enemies) {
       if (e.isBoss) updateBossAI(e, dt);
 
-      // move toward player (boss pursuit only)
       const px = player.x + player.w/2;
       const ex = e.x + e.w/2;
       const pursuing = (!e.isBoss) || (e.isBoss && e.mode === "pursuit");
@@ -1104,7 +1146,6 @@ window.__BLADE_BOOTED = true;
       }
       e.x = clamp(e.x, -220, WORLD.w + 220);
 
-      // contact damage + perfect dodge
       const hit = aabb(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h);
       if (hit) {
         if (player.invuln <= 0) {
@@ -1117,14 +1158,12 @@ window.__BLADE_BOOTED = true;
         e.pdUsed = false;
       }
 
-      // aura damage
       const dx = (e.x + e.w*0.5) - (player.x + player.w*0.5);
       const dy = (e.y + e.h*0.5) - (player.y + player.h*0.5);
       const dist = Math.hypot(dx, dy);
       if (dist < a.radius) e.hp -= a.dps * dt;
     }
 
-    // lightning update
     for (const ln of lightnings) {
       ln.t += dt;
       const inStrike = ln.t > LIGHTNING_WARN && ln.t < (LIGHTNING_WARN + LIGHTNING_STRIKE);
@@ -1146,11 +1185,9 @@ window.__BLADE_BOOTED = true;
       if (ln.t >= (LIGHTNING_WARN + LIGHTNING_STRIKE + 0.15)) lightnings.splice(i, 1);
     }
 
-    // hazards + bullets
     updateHazards(dt);
     updateBullets(dt);
 
-    // item pickup
     for (let i = items.length - 1; i >= 0; i--) {
       const it = items[i];
       const near = Math.abs((player.x + player.w/2) - (it.x + it.w/2)) < 55
@@ -1161,7 +1198,6 @@ window.__BLADE_BOOTED = true;
       }
     }
 
-    // deaths
     for (let i = enemies.length - 1; i >= 0; i--) {
       const e = enemies[i];
       if (e.hp <= 0) {
@@ -1181,10 +1217,8 @@ window.__BLADE_BOOTED = true;
       }
     }
 
-    // level up + boss spawn
     levelUpIfNeeded();
 
-    // death
     if (player.hp <= 0) {
       player.hp = 0;
       if (el.finalResult) {
@@ -1224,7 +1258,6 @@ window.__BLADE_BOOTED = true;
       ctx.fillRect(0, 0, WORLD.w, WORLD.h);
     }
 
-    // floor
     ctx.strokeStyle = "rgba(255,255,255,0.18)";
     ctx.lineWidth = 4;
     ctx.beginPath();
@@ -1232,7 +1265,6 @@ window.__BLADE_BOOTED = true;
     ctx.lineTo(WORLD.w, FLOOR_Y);
     ctx.stroke();
 
-    // boss telegraphs
     for (const e of enemies) {
       if (!e.isBoss) continue;
 
@@ -1251,7 +1283,6 @@ window.__BLADE_BOOTED = true;
       }
     }
 
-    // hazards
     for (const h of hazards) {
       if (h.type === "shockwave") {
         ctx.strokeStyle = "rgba(255,255,255,0.35)";
@@ -1262,7 +1293,6 @@ window.__BLADE_BOOTED = true;
       }
     }
 
-    // lightning
     for (const ln of lightnings) {
       const inWarn = ln.t <= LIGHTNING_WARN;
       const inStrike = ln.t > LIGHTNING_WARN && ln.t < (LIGHTNING_WARN + LIGHTNING_STRIKE);
@@ -1282,7 +1312,6 @@ window.__BLADE_BOOTED = true;
       }
     }
 
-    // items
     for (const it of items) {
       let im = img.itHeal;
       if (it.type === "CORE") im = img.itCore;
@@ -1295,7 +1324,6 @@ window.__BLADE_BOOTED = true;
       }
     }
 
-    // bullets
     if (WEAPONS[weaponId]?.gun) {
       ctx.fillStyle = "rgba(255,255,255,0.9)";
       for (const b of bullets) {
@@ -1305,7 +1333,6 @@ window.__BLADE_BOOTED = true;
       }
     }
 
-    // enemies
     for (const e of enemies) {
       const im = e.isBoss ? img.b : img.e;
       if (im.complete && im.naturalWidth > 0) ctx.drawImage(im, e.x, e.y, e.w, e.h);
@@ -1326,7 +1353,6 @@ window.__BLADE_BOOTED = true;
       }
     }
 
-    // player
     ctx.save();
     if (player.invuln > 0) ctx.globalAlpha = 0.75;
 
