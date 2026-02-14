@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>BLADE: HIGH-VISIBILITY</title>
 
-  <!-- ✅ CSS는 아래 로더가 “자동 경로 선택”해서 붙임 -->
+  <!-- ✅ 정상 경로: RPG-GAME/css.html/style.css -->
+  <link rel="stylesheet" href="./css.html/style.css?v=9" />
+
+  <!-- ✅ CSS/JS 로드 실패해도 화면에 에러가 뜨도록 최소 스타일 -->
   <style>
     html,body{height:100%;margin:0;background:#000;overflow:hidden;font-family:Arial, sans-serif;}
     canvas{display:block;}
-    .overlay{display:none;} /* CSS 미로딩 시에도 메뉴 글자 도배 방지 */
-
     #boot{
       position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
       background:rgba(0,0,0,.92);color:#fff;z-index:9998;text-align:center;padding:20px;
@@ -26,27 +27,34 @@
 </head>
 
 <body>
-  <div id="boot">LOADING...<br/>경로 자동 탐색 중...</div>
+  <div id="boot">LOADING...</div>
 
   <!-- HUD -->
   <div id="ui">
     <div id="stats">LV.1 에테르 기사</div>
     <div class="bar-container"><div id="hp-fill"></div></div>
-
     <div id="meta">
       <span class="pill">WAVE <b id="wave">1</b></span>
       <span class="pill">GOLD <b id="gold">0</b></span>
+      <span class="pill">TOKEN <b id="token">1</b>/1</span>
     </div>
-
     <div id="awk-timer" style="display:none;">OVERDRIVE: 10s</div>
-    <div id="cooldowns">DASH <b id="cd-dash">0.0</b>s · Q <b id="cd-q">0.0</b>s · E <b id="cd-e">0.0</b>s · R <b id="cd-r">0.0</b>s</div>
-
+    <div id="cooldowns">
+      DASH <b id="cd-dash">0.0</b>s ·
+      Q <b id="cd-q">0.0</b>s ·
+      E <b id="cd-e">0.0</b>s ·
+      R <b id="cd-r">0.0</b>s
+    </div>
     <div id="score">SCORE: 0</div>
     <div class="bar-container exp" style="height:8px;"><div id="exp-fill"></div></div>
   </div>
 
-  <!-- Touch (표시 여부는 game.js에서) -->
+  <div id="item-msg"></div>
+  <div id="hit-flash" aria-hidden="true"></div>
+
   <button id="pause-btn" aria-label="pause">⏸</button>
+
+  <!-- Touch controls -->
   <div id="touch" aria-hidden="true">
     <div class="touch-col">
       <div class="tbtn" id="t-left">◀</div>
@@ -63,108 +71,179 @@
     </div>
   </div>
 
-  <div id="item-msg"></div>
-  <div id="hit-flash" aria-hidden="true"></div>
-
   <canvas id="gameCanvas"></canvas>
 
-  <!-- (메뉴 UI는 나중에 확장 가능) -->
+  <!-- TITLE -->
+  <div id="title-menu" class="overlay" style="display:none;">
+    <h1 class="title">BLADE</h1>
+
+    <div class="panel wide">
+      <div class="row spread">
+        <div class="small-note" id="title-active">ACTIVE SLOT: 1</div>
+        <div class="btn-row">
+          <button class="menu-btn mini" id="btn-open-options-title">OPTIONS</button>
+        </div>
+      </div>
+      <div class="small-note" id="token-line-title">이어하기 토큰: 1/1</div>
+    </div>
+
+    <div class="panel wide">
+      <div class="label">SAVE SLOTS (3)</div>
+
+      <div class="slots">
+        <div class="slot-card">
+          <div class="slot-head">
+            <div class="slot-title">SLOT 1 <span id="slot-active-1" class="badge active" style="display:none;">ACTIVE</span></div>
+            <span id="slot-badge-1" class="badge">EMPTY</span>
+          </div>
+          <pre id="slot-meta-1" class="meta">No save data.</pre>
+          <div class="slot-actions">
+            <button class="menu-btn mini" id="slot-load-1">LOAD</button>
+            <button class="menu-btn mini" id="slot-new-1">NEW</button>
+            <button class="menu-btn mini danger" id="slot-del-1">DELETE</button>
+          </div>
+        </div>
+
+        <div class="slot-card">
+          <div class="slot-head">
+            <div class="slot-title">SLOT 2 <span id="slot-active-2" class="badge active" style="display:none;">ACTIVE</span></div>
+            <span id="slot-badge-2" class="badge">EMPTY</span>
+          </div>
+          <pre id="slot-meta-2" class="meta">No save data.</pre>
+          <div class="slot-actions">
+            <button class="menu-btn mini" id="slot-load-2">LOAD</button>
+            <button class="menu-btn mini" id="slot-new-2">NEW</button>
+            <button class="menu-btn mini danger" id="slot-del-2">DELETE</button>
+          </div>
+        </div>
+
+        <div class="slot-card">
+          <div class="slot-head">
+            <div class="slot-title">SLOT 3 <span id="slot-active-3" class="badge active" style="display:none;">ACTIVE</span></div>
+            <span id="slot-badge-3" class="badge">EMPTY</span>
+          </div>
+          <pre id="slot-meta-3" class="meta">No save data.</pre>
+          <div class="slot-actions">
+            <button class="menu-btn mini" id="slot-load-3">LOAD</button>
+            <button class="menu-btn mini" id="slot-new-3">NEW</button>
+            <button class="menu-btn mini danger" id="slot-del-3">DELETE</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="small-note">※ 자동 저장: 보스 클리어(보상 선택 직후)만</div>
+      <div class="small-note">※ GAME OVER에서 LOAD는 “토큰 1회” 있을 때만 가능</div>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div id="pause-menu" class="overlay" style="display:none;">
+    <h1 class="title">PAUSED</h1>
+
+    <div class="panel">
+      <div id="active-slot-note" class="small-note">ACTIVE: SLOT 1</div>
+      <div id="token-line-pause" class="small-note">이어하기 토큰: 1/1</div>
+
+      <div class="mini-slots">
+        <button class="menu-btn mini" id="mini-slot-1">SLOT 1</button>
+        <button class="menu-btn mini" id="mini-slot-2">SLOT 2</button>
+        <button class="menu-btn mini" id="mini-slot-3">SLOT 3</button>
+      </div>
+
+      <div class="btn-col">
+        <button class="menu-btn" id="btn-resume">RESUME</button>
+        <button class="menu-btn" id="btn-save">SAVE (ACTIVE SLOT)</button>
+        <button class="menu-btn" id="btn-open-options-pause">OPTIONS</button>
+        <button class="menu-btn ghost" id="btn-restart">RESTART (ACTIVE SLOT)</button>
+        <button class="menu-btn ghost" id="btn-to-title">TITLE MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REWARD -->
+  <div id="reward-menu" class="overlay" style="display:none;">
+    <h1 class="title">BOSS CLEARED</h1>
+    <div id="reward-sub" class="small-note">WAVE 1 → 2</div>
+
+    <div class="panel wide">
+      <div class="reward-grid">
+        <button class="reward-card" id="reward-0">
+          <div class="r-name" id="reward-name-0">Reward A</div>
+          <div class="r-desc" id="reward-desc-0">Desc</div>
+        </button>
+        <button class="reward-card" id="reward-1">
+          <div class="r-name" id="reward-name-1">Reward B</div>
+          <div class="r-desc" id="reward-desc-1">Desc</div>
+        </button>
+        <button class="reward-card" id="reward-2">
+          <div class="r-name" id="reward-name-2">Reward C</div>
+          <div class="r-desc" id="reward-desc-2">Desc</div>
+        </button>
+      </div>
+      <div class="small-note">선택 즉시: 체크포인트 자동 저장 + 토큰 1회 충전</div>
+    </div>
+  </div>
+
+  <!-- OPTIONS -->
+  <div id="options-menu" class="overlay" style="display:none;">
+    <h1 class="title">OPTIONS</h1>
+    <div class="panel">
+      <label class="opt"><input type="checkbox" id="opt-shake" /><span>SCREEN SHAKE</span></label>
+      <label class="opt"><input type="checkbox" id="opt-flash" /><span>HIT FLASH</span></label>
+      <label class="opt"><input type="checkbox" id="opt-slowmo" /><span>SLOW-MO (PERFECT DODGE)</span></label>
+      <div class="small-note">※ 옵션은 저장됩니다(로컬스토리지).</div>
+      <div class="btn-row center">
+        <button class="menu-btn" id="btn-options-back">BACK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="overlay" class="overlay" style="display:none;">
+    <h1 class="title">GAME OVER</h1>
+    <div id="final-result" class="small-note">SCORE: 0 | LEVEL: 1</div>
+    <div id="token-line-over" class="small-note">이어하기 토큰: 1/1</div>
+    <div id="over-note" class="small-note">불러올 슬롯을 선택하세요.</div>
+
+    <div class="panel">
+      <div class="btn-col">
+        <button class="menu-btn" id="go-load-1">LOAD SLOT 1</button>
+        <button class="menu-btn" id="go-load-2">LOAD SLOT 2</button>
+        <button class="menu-btn" id="go-load-3">LOAD SLOT 3</button>
+      </div>
+
+      <div class="btn-row center">
+        <button class="menu-btn ghost" id="btn-retry">RETRY (NEW)</button>
+        <button class="menu-btn ghost" id="btn-over-title">TITLE</button>
+      </div>
+    </div>
+  </div>
+
   <div id="debug"></div>
 
+  <!-- ✅ game.js 로더(실패 시 에러 표시) -->
   <script>
     (function(){
       const debugEl = document.getElementById("debug");
-      const bootEl  = document.getElementById("boot");
+      const bootEl = document.getElementById("boot");
+      const show = (msg) => { debugEl.style.display="block"; debugEl.textContent=msg; };
 
-      const show = (msg) => {
-        debugEl.style.display = "block";
-        debugEl.textContent = msg;
-      };
-
-      // ✅ 네가 준 구조 기준(정답 우선순위)
-      // 1) ./css.html/style.css (정상)
-      // 2) ./css.html/style.css/style.css (실수로 'style.css' 폴더를 만든 경우)
-      // + 예비로 RPG-GAME 접두어 케이스도 같이 둠(혹시 index가 상위에 있을 때)
-      const CSS_CANDIDATES = [
-        "./css.html/style.css",
-        "./css.html/style.css/style.css",
-        "./RPG-GAME/css.html/style.css",
-        "./RPG-GAME/css.html/style.css/style.css",
-      ];
-
-      const JS_CANDIDATES = [
-        "./js.html/game.js",
-        "./js.html/game.js/game.js",
-        "./RPG-GAME/js.html/game.js",
-        "./RPG-GAME/js.html/game.js/game.js",
-      ];
-
-      function loadCSS(i){
-        if(i >= CSS_CANDIDATES.length){
-          show(
-            "style.css 로드 실패!\n시도 경로:\n- " + CSS_CANDIDATES.join("\n- ") +
-            "\n\n✅ 확인\n1) css.html은 '폴더'\n2) style.css가 style.css.txt가 아닌지\n3) css.html/style.css를 폴더로 만들지 말고 파일로 두기"
-          );
-          return loadJS(0);
-        }
-
-        const href = CSS_CANDIDATES[i];
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = href + "?v=1";
-        link.onload = () => {
-          show("CSS OK: " + href + "\n(이제 JS 로딩...)");
-          loadJS(0);
-        };
-        link.onerror = () => { link.remove(); loadCSS(i+1); };
-        document.head.appendChild(link);
-
-        // onerror가 안 뜨는 환경 대비
+      const s = document.createElement("script");
+      s.src = "./js.html/game.js?v=9";
+      s.onload = () => {
         setTimeout(() => {
-          try {
-            const ok = Array.from(document.styleSheets).some(ss => (ss.href||"").includes(href));
-            if(!ok){ link.remove(); loadCSS(i+1); }
-          } catch(e) {}
-        }, 900);
-      }
-
-      function baseFromJsPath(jsPath){
-        // "./js.html/game.js" => "./"
-        // "./RPG-GAME/js.html/game.js" => "./RPG-GAME/"
-        if(jsPath.startsWith("./RPG-GAME/")) return "./RPG-GAME/";
-        return "./";
-      }
-
-      function loadJS(i){
-        if(i >= JS_CANDIDATES.length){
-          show(
-            "game.js 로드 실패!\n시도 경로:\n- " + JS_CANDIDATES.join("\n- ") +
-            "\n\n✅ 반드시 확인\n1) js.html은 '폴더'(파일 X)\n2) game.js가 game.js.txt가 아닌지\n3) 대소문자 정확히"
-          );
-          if(bootEl) bootEl.innerHTML = "LOADING 실패 (debug 확인)";
-          return;
-        }
-
-        const src = JS_CANDIDATES[i];
-        window.__BLADE_BASE = baseFromJsPath(src);
-
-        const s = document.createElement("script");
-        s.src = src + "?v=1";
-        s.onload = () => {
-          setTimeout(() => {
-            if(window.__BLADE_BOOTED){
-              show("JS OK: " + src + "\nBASE: " + window.__BLADE_BASE + "\n(게임 실행 중)");
-              if(bootEl) bootEl.style.display = "none";
-            } else {
-              show("JS는 로드됐지만 초기화 신호가 없습니다.\n콘솔(F12) 에러 확인\nJS: " + src);
-            }
-          }, 200);
-        };
-        s.onerror = () => { s.remove(); loadJS(i+1); };
-        document.body.appendChild(s);
-      }
-
-      loadCSS(0);
+          if(window.__BLADE_BOOTED){
+            bootEl.style.display = "none";
+          }else{
+            show("game.js는 로드되었지만 초기화 신호가 없습니다.\n콘솔(F12) 에러를 확인하세요.");
+          }
+        }, 120);
+      };
+      s.onerror = () => {
+        show("game.js 로드 실패!\n경로: ./js.html/game.js\n※ js.html은 ‘폴더’여야 합니다(파일 아님)\n※ game.js가 game.js.txt가 아닌지 확인");
+        bootEl.innerHTML = "LOADING 실패 (debug 확인)";
+      };
+      document.body.appendChild(s);
     })();
   </script>
 </body>
