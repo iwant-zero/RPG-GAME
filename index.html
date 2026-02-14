@@ -5,14 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>BLADE: HIGH-VISIBILITY</title>
 
-  <!-- ✅ 외부 CSS (경로 변경: RPG-GAME/css.html/style.css) -->
-  <link id="blade-style" rel="stylesheet" href="./RPG-GAME/css.html/style.css" />
-
-  <!-- ✅ CSS가 안 먹어도 “오버레이 글자 도배” 방지 + 에러 표시용 최소 스타일 -->
+  <!-- ✅ CSS는 아래 로더가 “자동 경로 선택”해서 붙임 -->
   <style>
     html,body{height:100%;margin:0;background:#000;overflow:hidden;font-family:Arial, sans-serif;}
     canvas{display:block;}
-    .overlay{display:none;}
+    .overlay{display:none;} /* CSS 미로딩 시에도 메뉴 글자 도배 방지 */
+
     #boot{
       position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
       background:rgba(0,0,0,.92);color:#fff;z-index:9998;text-align:center;padding:20px;
@@ -20,7 +18,7 @@
     }
     #debug{
       position:fixed;left:10px;bottom:10px;z-index:9999;display:none;
-      max-width:min(92vw,860px);white-space:pre-wrap;font:12px/1.4 ui-monospace,Consolas,monospace;
+      max-width:min(94vw,980px);white-space:pre-wrap;font:12px/1.4 ui-monospace,Consolas,monospace;
       background:rgba(0,0,0,.78);color:#fff;border:1px solid rgba(255,255,255,.28);
       padding:10px;border-radius:12px
     }
@@ -28,12 +26,7 @@
 </head>
 
 <body>
-  <!-- ✅ 부팅/에러 안내(정상 실행되면 game.js가 자동으로 숨김) -->
-  <div id="boot">
-    LOADING...<br/>
-    만약 이 화면이 계속 유지되면<br/>
-    <b>./RPG-GAME/js.html/game.js</b> 또는 <b>./RPG-GAME/css.html/style.css</b> 경로가 틀린 겁니다.
-  </div>
+  <div id="boot">LOADING...<br/>경로 자동 탐색 중...</div>
 
   <!-- HUD -->
   <div id="ui">
@@ -43,29 +36,17 @@
     <div id="meta">
       <span class="pill">WAVE <b id="wave">1</b></span>
       <span class="pill">GOLD <b id="gold">0</b></span>
-      <span class="pill" id="challenge-pill" style="display:none;">MODE <b id="challenge-label">NORMAL</b></span>
-      <span class="pill" id="nohit-pill" style="display:none;">NO-HIT <b id="nohit-label">OK</b></span>
-      <span class="pill" id="time-pill" style="display:none;">TIME <b id="time-label">0.0</b>s</span>
     </div>
 
     <div id="awk-timer" style="display:none;">OVERDRIVE: 10s</div>
-    <div id="cooldowns">
-      DASH <b id="cd-dash">0.0</b>s ·
-      Q <b id="cd-q">0.0</b>s ·
-      E <b id="cd-e">0.0</b>s ·
-      R <b id="cd-r">0.0</b>s
-    </div>
+    <div id="cooldowns">DASH <b id="cd-dash">0.0</b>s · Q <b id="cd-q">0.0</b>s · E <b id="cd-e">0.0</b>s · R <b id="cd-r">0.0</b>s</div>
 
     <div id="score">SCORE: 0</div>
     <div class="bar-container exp" style="height:8px;"><div id="exp-fill"></div></div>
   </div>
 
-  <div id="item-msg"></div>
-  <div id="hit-flash" aria-hidden="true"></div>
-
+  <!-- Touch (표시 여부는 game.js에서) -->
   <button id="pause-btn" aria-label="pause">⏸</button>
-
-  <!-- Touch controls -->
   <div id="touch" aria-hidden="true">
     <div class="touch-col">
       <div class="tbtn" id="t-left">◀</div>
@@ -82,52 +63,108 @@
     </div>
   </div>
 
+  <div id="item-msg"></div>
+  <div id="hit-flash" aria-hidden="true"></div>
+
   <canvas id="gameCanvas"></canvas>
 
-  <!-- 오버레이들(본 게임 버전에서 사용) -->
-  <div id="title-menu" class="overlay" style="display:none;"></div>
-  <div id="pause-menu" class="overlay" style="display:none;"></div>
-  <div id="reward-menu" class="overlay" style="display:none;"></div>
-  <div id="shop-menu" class="overlay" style="display:none;"></div>
-  <div id="options-menu" class="overlay" style="display:none;"></div>
-  <div id="overlay" class="overlay" style="display:none;"></div>
-
+  <!-- (메뉴 UI는 나중에 확장 가능) -->
   <div id="debug"></div>
 
   <script>
     (function(){
-      const debug = (msg) => {
-        const el = document.getElementById("debug");
-        if(!el) return;
-        el.style.display = "block";
-        el.textContent = msg;
+      const debugEl = document.getElementById("debug");
+      const bootEl  = document.getElementById("boot");
+
+      const show = (msg) => {
+        debugEl.style.display = "block";
+        debugEl.textContent = msg;
       };
 
-      // ✅ CSS 로딩 체크
-      setTimeout(() => {
-        try{
-          const target = "/RPG-GAME/css.html/style.css";
-          const ok = Array.from(document.styleSheets).some(ss => (ss.href||"").includes(target) || (ss.href||"").endsWith("RPG-GAME/css.html/style.css"));
-          if(!ok){
-            debug("style.css가 적용되지 않았습니다.\n경로: ./RPG-GAME/css.html/style.css\n※ css.html은 ‘폴더’여야 합니다(파일 아님).");
-          }
-        }catch(e){}
-      }, 700);
+      // ✅ 네가 준 구조 기준(정답 우선순위)
+      // 1) ./css.html/style.css (정상)
+      // 2) ./css.html/style.css/style.css (실수로 'style.css' 폴더를 만든 경우)
+      // + 예비로 RPG-GAME 접두어 케이스도 같이 둠(혹시 index가 상위에 있을 때)
+      const CSS_CANDIDATES = [
+        "./css.html/style.css",
+        "./css.html/style.css/style.css",
+        "./RPG-GAME/css.html/style.css",
+        "./RPG-GAME/css.html/style.css/style.css",
+      ];
 
-      // ✅ game.js 로더 (경로 변경: RPG-GAME/js.html/game.js)
-      const s = document.createElement("script");
-      s.src = "./RPG-GAME/js.html/game.js?v=3";
-      s.onload = () => {
+      const JS_CANDIDATES = [
+        "./js.html/game.js",
+        "./js.html/game.js/game.js",
+        "./RPG-GAME/js.html/game.js",
+        "./RPG-GAME/js.html/game.js/game.js",
+      ];
+
+      function loadCSS(i){
+        if(i >= CSS_CANDIDATES.length){
+          show(
+            "style.css 로드 실패!\n시도 경로:\n- " + CSS_CANDIDATES.join("\n- ") +
+            "\n\n✅ 확인\n1) css.html은 '폴더'\n2) style.css가 style.css.txt가 아닌지\n3) css.html/style.css를 폴더로 만들지 말고 파일로 두기"
+          );
+          return loadJS(0);
+        }
+
+        const href = CSS_CANDIDATES[i];
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = href + "?v=1";
+        link.onload = () => {
+          show("CSS OK: " + href + "\n(이제 JS 로딩...)");
+          loadJS(0);
+        };
+        link.onerror = () => { link.remove(); loadCSS(i+1); };
+        document.head.appendChild(link);
+
+        // onerror가 안 뜨는 환경 대비
         setTimeout(() => {
-          if(!window.__BLADE_BOOTED){
-            debug("game.js가 로드되었지만 초기화 신호가 없습니다.\n콘솔(F12) 에러를 확인하세요.");
-          }
-        }, 800);
-      };
-      s.onerror = () => {
-        debug("game.js 로드 실패!\n경로: ./RPG-GAME/js.html/game.js\n폴더/파일 이름을 확인하세요\ngame.js가 실행되지 않았습니다.\n※ js.html은 ‘폴더’여야 합니다(파일 아님).");
-      };
-      document.body.appendChild(s);
+          try {
+            const ok = Array.from(document.styleSheets).some(ss => (ss.href||"").includes(href));
+            if(!ok){ link.remove(); loadCSS(i+1); }
+          } catch(e) {}
+        }, 900);
+      }
+
+      function baseFromJsPath(jsPath){
+        // "./js.html/game.js" => "./"
+        // "./RPG-GAME/js.html/game.js" => "./RPG-GAME/"
+        if(jsPath.startsWith("./RPG-GAME/")) return "./RPG-GAME/";
+        return "./";
+      }
+
+      function loadJS(i){
+        if(i >= JS_CANDIDATES.length){
+          show(
+            "game.js 로드 실패!\n시도 경로:\n- " + JS_CANDIDATES.join("\n- ") +
+            "\n\n✅ 반드시 확인\n1) js.html은 '폴더'(파일 X)\n2) game.js가 game.js.txt가 아닌지\n3) 대소문자 정확히"
+          );
+          if(bootEl) bootEl.innerHTML = "LOADING 실패 (debug 확인)";
+          return;
+        }
+
+        const src = JS_CANDIDATES[i];
+        window.__BLADE_BASE = baseFromJsPath(src);
+
+        const s = document.createElement("script");
+        s.src = src + "?v=1";
+        s.onload = () => {
+          setTimeout(() => {
+            if(window.__BLADE_BOOTED){
+              show("JS OK: " + src + "\nBASE: " + window.__BLADE_BASE + "\n(게임 실행 중)");
+              if(bootEl) bootEl.style.display = "none";
+            } else {
+              show("JS는 로드됐지만 초기화 신호가 없습니다.\n콘솔(F12) 에러 확인\nJS: " + src);
+            }
+          }, 200);
+        };
+        s.onerror = () => { s.remove(); loadJS(i+1); };
+        document.body.appendChild(s);
+      }
+
+      loadCSS(0);
     })();
   </script>
 </body>
