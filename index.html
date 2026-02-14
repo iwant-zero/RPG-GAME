@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>BLADE: HIGH-VISIBILITY</title>
 
-  <!-- ✅ 정상 경로: RPG-GAME/css.html/style.css -->
-  <link rel="stylesheet" href="./css.html/style.css?v=9" />
+  <link rel="stylesheet" href="./css.html/style.css?v=10" />
 
-  <!-- ✅ CSS/JS 로드 실패해도 화면에 에러가 뜨도록 최소 스타일 -->
   <style>
     html,body{height:100%;margin:0;background:#000;overflow:hidden;font-family:Arial, sans-serif;}
     canvas{display:block;}
@@ -33,11 +31,14 @@
   <div id="ui">
     <div id="stats">LV.1 에테르 기사</div>
     <div class="bar-container"><div id="hp-fill"></div></div>
+
     <div id="meta">
       <span class="pill">WAVE <b id="wave">1</b></span>
       <span class="pill">GOLD <b id="gold">0</b></span>
       <span class="pill">TOKEN <b id="token">1</b>/1</span>
+      <span class="pill">WEAPON <b id="weapon">BLADE</b></span>
     </div>
+
     <div id="awk-timer" style="display:none;">OVERDRIVE: 10s</div>
     <div id="cooldowns">
       DASH <b id="cd-dash">0.0</b>s ·
@@ -45,6 +46,7 @@
       E <b id="cd-e">0.0</b>s ·
       R <b id="cd-r">0.0</b>s
     </div>
+
     <div id="score">SCORE: 0</div>
     <div class="bar-container exp" style="height:8px;"><div id="exp-fill"></div></div>
   </div>
@@ -132,7 +134,34 @@
       </div>
 
       <div class="small-note">※ 자동 저장: 보스 클리어(보상 선택 직후)만</div>
-      <div class="small-note">※ GAME OVER에서 LOAD는 “토큰 1회” 있을 때만 가능</div>
+      <div class="small-note">※ NEW 시작 시 무기 선택</div>
+    </div>
+  </div>
+
+  <!-- WEAPON SELECT -->
+  <div id="weapon-menu" class="overlay" style="display:none;">
+    <h1 class="title">CHOOSE WEAPON</h1>
+    <div class="small-note" id="weapon-sub">SLOT 1 · 시작 무기를 선택하세요</div>
+
+    <div class="panel wide">
+      <div class="weapon-grid">
+        <button class="weapon-card" id="w-blade">
+          <div class="r-name">BLADE</div>
+          <div class="r-desc">근접 오라 DPS(균형)\n초보/기본 추천</div>
+        </button>
+        <button class="weapon-card" id="w-spear">
+          <div class="r-name">SPEAR</div>
+          <div class="r-desc">사거리↑ 안정형\nDPS는 약간 낮음</div>
+        </button>
+        <button class="weapon-card" id="w-gun">
+          <div class="r-name">GUN</div>
+          <div class="r-desc">원거리 자동 사격(투사체)\n근접 오라는 약함</div>
+        </button>
+      </div>
+      <div class="btn-row center" style="margin-top:12px;">
+        <button class="menu-btn ghost" id="btn-weapon-cancel">CANCEL</button>
+      </div>
+      <div class="small-note">선택 즉시 게임 시작 · 무기는 저장됩니다</div>
     </div>
   </div>
 
@@ -221,7 +250,6 @@
 
   <div id="debug"></div>
 
-  <!-- ✅ game.js 로더(실패 시 에러 표시) -->
   <script>
     (function(){
       const debugEl = document.getElementById("debug");
@@ -229,7 +257,7 @@
       const show = (msg) => { debugEl.style.display="block"; debugEl.textContent=msg; };
 
       const s = document.createElement("script");
-      s.src = "./js.html/game.js?v=9";
+      s.src = "./js.html/game.js?v=10";
       s.onload = () => {
         setTimeout(() => {
           if(window.__BLADE_BOOTED){
