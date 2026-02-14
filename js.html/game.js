@@ -677,7 +677,7 @@ window.__BLADE_BOOTED = true;
 
   /* ===== Items ===== */
   function tryDropItem(x) {
-    if (Math.random() > 0.5) return;
+    if (Math.random() > 0.3) return;
     const r = Math.random();
     const type = (r < 0.25) ? "CORE" : (r < 0.55) ? "THUNDER" : "HEAL";
     items.push({ x: clamp(x, 20, WORLD.w - 60), y: FLOOR_Y - 60, w: 50, h: 50, type });
