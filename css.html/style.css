@@ -126,11 +126,7 @@ canvas { display: block; }
 
 .panel.wide { width: min(980px, 96vw); }
 
-.label {
-  font-weight: 900;
-  opacity: 0.92;
-  margin-bottom: 8px;
-}
+.label { font-weight: 900; opacity: 0.92; margin-bottom: 8px; }
 
 .small-note {
   opacity: 0.86;
@@ -148,7 +144,6 @@ canvas { display: block; }
 
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn-row.center { justify-content: center; }
-
 .btn-col { display: flex; flex-direction: column; gap: 10px; }
 
 .menu-btn {
@@ -162,26 +157,11 @@ canvas { display: block; }
   color: #fff;
   border-radius: 14px;
 }
-
-.menu-btn.mini {
-  padding: 10px 14px;
-  font-size: 14px;
-  border-radius: 12px;
-}
-
-.menu-btn.ghost {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.55);
-}
-
-.menu-btn.danger {
-  background: rgba(255,80,80,0.12);
-  border-color: rgba(255,120,120,0.8);
-}
-
+.menu-btn.mini { padding: 10px 14px; font-size: 14px; border-radius: 12px; }
+.menu-btn.ghost { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.55); }
+.menu-btn.danger { background: rgba(255,80,80,0.12); border-color: rgba(255,120,120,0.8); }
 .menu-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* select */
 .select {
   width: 100%;
   max-width: 360px;
@@ -206,11 +186,7 @@ canvas { display: block; }
   border-radius: 14px;
   padding: 10px;
 }
-.slot-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.slot-head { display: flex; justify-content: space-between; align-items: center; }
 .slot-title { font-weight: 900; }
 .badge {
   display: inline-flex;
@@ -223,10 +199,8 @@ canvas { display: block; }
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.2);
 }
-.badge.active {
-  background: rgba(80,180,255,0.18);
-  border-color: rgba(120,220,255,0.6);
-}
+.badge.active { background: rgba(80,180,255,0.18); border-color: rgba(120,220,255,0.6); }
+
 .meta {
   background: rgba(0,0,0,0.25);
   border: 1px solid rgba(255,255,255,0.12);
@@ -237,13 +211,8 @@ canvas { display: block; }
   white-space: pre-line;
   font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
-.slot-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-}
+.slot-actions { display: flex; gap: 8px; justify-content: space-between; }
 
-/* reward */
 .reward-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(220px, 1fr));
@@ -263,7 +232,6 @@ canvas { display: block; }
 .r-name { font-weight: 900; font-size: 18px; margin-bottom: 8px; }
 .r-desc { opacity: 0.85; font-size: 14px; white-space: pre-line; }
 
-/* shop */
 .shop-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(260px, 1fr));
@@ -276,18 +244,12 @@ canvas { display: block; }
   border-radius: 14px;
   padding: 12px;
 }
-.shop-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-}
+.shop-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .shop-name { font-weight: 900; font-size: 16px; }
 .shop-cost { font-weight: 900; opacity: 0.92; }
 .shop-desc { opacity: 0.82; margin: 8px 0 10px; font-size: 13px; white-space: pre-line; }
 .shop-actions { display: flex; gap: 8px; }
 
-/* options */
 .opt {
   display: flex;
   gap: 10px;
@@ -302,7 +264,6 @@ canvas { display: block; }
 }
 .opt input { width: 20px; height: 20px; }
 
-/* pause button */
 #pause-btn {
   position: fixed;
   top: 12px;
@@ -346,42 +307,18 @@ canvas { display: block; }
   justify-content: center;
   touch-action: none;
 }
-.tbtn.big {
-  width: 78px;
-  height: 78px;
-  border-radius: 18px;
-  font-size: 26px;
-}
+.tbtn.big { width: 78px; height: 78px; border-radius: 18px; font-size: 26px; }
 
-/* =========================================================
-   ✅ 모바일에서만 HUD 축소 (PC 유지)
-   ========================================================= */
+/* ✅ 모바일 HUD 축소 (PC 유지) */
 @media (max-width: 768px), (max-height: 520px) {
-  #ui {
-    top: 10px;
-    left: 10px;
-    padding: 8px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.35);
-  }
+  #ui { top: 10px; left: 10px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.35); }
   #stats { font-size: 14px; margin-bottom: 4px; }
   #score { font-size: 15px; margin-top: 6px; }
   #awk-timer { font-size: 13px; }
   #cooldowns { font-size: 12px; }
-
   .pill { font-size: 11px; padding: 2px 7px; }
-
-  .bar-container {
-    width: 180px;
-    height: 12px;
-    border-width: 1px;
-    margin: 4px 0;
-  }
-
+  .bar-container { width: 180px; height: 12px; border-width: 1px; margin: 4px 0; }
   #item-msg { font-size: 30px; }
-
   .title { font-size: 34px; }
-  .slots { grid-template-columns: 1fr; }
-  .reward-grid { grid-template-columns: 1fr; }
-  .shop-list { grid-template-columns: 1fr; }
+  .slots, .reward-grid, .shop-list { grid-template-columns: 1fr; }
 }
